@@ -1,29 +1,13 @@
 const express = require('express');
 const router = express.Router();
+router.use(express.json());
 require('dotenv').config();
 const fs = require('fs').promises;  // Use promise-based fs
 const axios = require('axios');
 const cheerio = require('cheerio');
 const uniqid = require('uniqid');
 
-const EDT_USERNAME = process.env.EDT_USERNAME;
-const EDT_PASSWORD = process.env.EDT_PASSWORD;
 const WIGOR_URL = process.env.WIGOR_URL;
-
-async function wigorLogin() {
-    try {
-        const response = await axios.get("http://localhost:3000/auth", {
-            data: {
-                username: EDT_USERNAME,
-                password: EDT_PASSWORD
-            }
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Error in wigorLogin:', error);
-        throw error;
-    }
-}
 
 async function wigorGetEDT(cookies, date) {
     try {
@@ -36,7 +20,7 @@ async function wigorGetEDT(cookies, date) {
             });
             return response.data;
         } else {
-            return "error";
+           return "error mising cookies";
         }
     } catch (error) {
         console.error('Error in wigorGetEDT:', error);
@@ -49,8 +33,7 @@ router.post('/', async (req, res) => {
     const cookies = req.body.cookies;
     if (cookies && cookies[0].expires > Date.now()) {
         try {
-            const edtHTML = await wigorGetEDT(cookies, date);
-            // using cheerio, remove any style tags from the html and script tags
+            const edtHTML = await wigorGetEDT(cookies,date);
             const $ = cheerio.load(edtHTML);
             $('style').remove();
             $('script').remove();
@@ -65,7 +48,7 @@ router.post('/', async (req, res) => {
             res.status(500).send('Failed to process request due to internal error');
         }
     }else{
-            console.log(req.body);
+            console.log('Cookies are not valid anymore, please login again.');
             res.status(500).send('Cookies are not valid anymore, please login again.');
     }
 });
